@@ -1,5 +1,5 @@
 // Service Worker da Viva - Chat de IA
-const CACHE_NAME = 'viva-cache-v2';
+const CACHE_NAME = 'viva-cache-v3';
 const ASSETS = [
   './',
   './index.html',

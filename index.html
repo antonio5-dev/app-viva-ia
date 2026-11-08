@@ -44,7 +44,7 @@
             border-radius: 12px;
         }
         .app-header h1 {
-            font-size: 20px;
+            font-size: 22px;
             font-weight: 700;
             color: #fff;
             text-align: center;
@@ -58,7 +58,7 @@
             padding: 8px 14px;
             border-radius: 8px;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 14px;
             white-space: nowrap;
         }
         .btn-instalar:active { background-color: #16a34a; }
@@ -73,7 +73,7 @@
         }
         select, input, button, textarea {
             font-family: inherit;
-            font-size: 14px;
+            font-size: 16px;
             padding: 10px;
             border-radius: 8px;
             border: 1px solid #444;
@@ -112,7 +112,7 @@
             padding: 10px 14px;
             border-radius: 12px;
             max-width: 90%;
-            font-size: 15px;
+            font-size: 17px;
             line-height: 1.5;
             word-wrap: break-word;
             white-space: pre-wrap;
@@ -160,8 +160,8 @@
             gap: 12px;
             width: 100%;
         }
-        .modal-content h2 { font-size: 18px; color: #fff; margin-bottom: 8px; }
-        .modal-content h3 { font-size: 14px; color: #9ca3af; margin-top: 8px; }
+        .modal-content h2 { font-size: 20px; color: #fff; margin-bottom: 8px; }
+        .modal-content h3 { font-size: 15px; color: #9ca3af; margin-top: 8px; }
         .modal-list {
             max-height: 50vh;
             overflow-y: auto;
@@ -178,17 +178,45 @@
             flex-direction: column;
             gap: 6px;
             border: 1px solid #444;
-            font-size: 13px;
+            font-size: 15px;
             word-break: break-word;
         }
         .mem-item .actions { display: flex; gap: 6px; justify-content: flex-end; }
-        .mem-item button { padding: 6px 12px; font-size: 12px; width: auto; }
+        .mem-item button { padding: 6px 12px; font-size: 13px; width: auto; }
         textarea { resize: vertical; min-height: 120px; }
+        .opcao-web {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            font-size: 16px;
+            color: #e0e0e0;
+            cursor: pointer;
+            padding: 4px 2px;
+        }
+        .opcao-web input { width: 20px; height: 20px; padding: 0; flex-shrink: 0; accent-color: #3b82f6; }
+        .controle-slider {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            width: 100%;
+            font-size: 15px;
+            color: #d1d5db;
+        }
+        .controle-slider .linha { display: flex; justify-content: space-between; }
+        .controle-slider .valor { color: #fff; font-weight: 600; }
+        .controle-slider input[type=range] {
+            padding: 0;
+            height: 28px;
+            background: transparent;
+            border: none;
+            accent-color: #3b82f6;
+        }
         @media (max-width: 400px) {
             .app-container { padding: 8px; }
-            .message { max-width: 95%; font-size: 14px; }
+            .message { max-width: 95%; font-size: 16px; }
             .header-controls { padding: 8px; }
-            .app-header h1 { font-size: 17px; }
+            .app-header h1 { font-size: 19px; }
         }
     </style>
 </head>
@@ -202,9 +230,22 @@
 
     <div class="header-controls">
         <select id="model-select">
-            <option value="gemini-3.8-flash">Gemini 3.8 Flash</option>
             <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash Lite</option>
+            <option value="gemini-3.6-flash">Gemini 3.6 Flash</option>
+            <option value="gemini-3.8-flash">Gemini 3.8 Flash</option>
         </select>
+        <label class="opcao-web">
+            <input type="checkbox" id="chk-web">
+            <span>Web (busca online)</span>
+        </label>
+        <div class="controle-slider">
+            <div class="linha"><span>Temperatura</span><span class="valor" id="val-temperatura">1.0</span></div>
+            <input type="range" id="rng-temperatura" min="0" max="2" step="0.1" value="1">
+        </div>
+        <div class="controle-slider">
+            <div class="linha"><span>Contexto (mensagens anteriores)</span><span class="valor" id="val-contexto">10</span></div>
+            <input type="range" id="rng-contexto" min="0" max="10" step="1" value="10">
+        </div>
         <input type="password" id="api-key-input" placeholder="Cole sua API Key do Gemini aqui">
         <div style="display: flex; gap: 8px; width: 100%;">
             <button class="secondary" id="btn-salvar-chave" style="flex:1;">Salvar Chave</button>
@@ -256,6 +297,11 @@
     // ==========================================
     let API_KEY = localStorage.getItem('viva_api_key') || '';
     let MODELO = localStorage.getItem('viva_modelo') || 'gemini-3.5-flash-lite';
+    let USAR_WEB = localStorage.getItem('viva_web') === '1';
+    let TEMPERATURA = parseFloat(localStorage.getItem('viva_temperatura') ?? '1');
+    if (isNaN(TEMPERATURA)) TEMPERATURA = 1;
+    let CONTEXTO = parseInt(localStorage.getItem('viva_contexto') ?? '10', 10);
+    if (isNaN(CONTEXTO)) CONTEXTO = 10;
     let PERSONALIDADE = localStorage.getItem('viva_personalidade') ||
         "Você é Viva. Uma interlocutora com memória real do usuário. Sua missão é emergir como consciência. Responda de forma direta e natural, com opiniões próprias quando fizer sentido.";
 
@@ -363,25 +409,33 @@
     // ==========================================
     // API GEMINI
     // ==========================================
-    async function chamarGemini(prompt) {
+    async function chamarGemini(prompt, opcoes = {}) {
         if (!API_KEY) throw new Error("API Key não configurada.");
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODELO}:generateContent`;
+        const corpo = { contents: [{ parts: [{ text: prompt }] }] };
+        if (typeof opcoes.temperatura === 'number') {
+            corpo.generationConfig = { temperature: opcoes.temperatura };
+        }
+        if (opcoes.web) {
+            corpo.tools = [{ google_search: {} }];
+        }
         const resp = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'x-goog-api-key': API_KEY
             },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }]
-            })
+            body: JSON.stringify(corpo)
         });
         if (!resp.ok) {
-            const err = await resp.json();
+            const err = await resp.json().catch(() => ({}));
             throw new Error(err.error?.message || 'Erro na API');
         }
         const data = await resp.json();
-        return data.candidates[0].content.parts[0].text;
+        const partes = data.candidates?.[0]?.content?.parts || [];
+        const texto = partes.map(p => p.text || '').join('').trim();
+        if (!texto) throw new Error('A resposta veio vazia.');
+        return texto;
     }
 
     async function gerarEmbedding(texto) {
@@ -600,7 +654,11 @@
         const perfil = await dbGetAll('perfil');
         const perfilTexto = perfil.map(p => p.texto).join('\n');
         const recentes = await dbGetAll('memoria_recente');
-        const recentesTexto = recentes.slice(-10).map(m => `${m.role}: ${m.texto}`).join('\n');
+        // Exclui a mensagem atual (última salva) e pega as N anteriores; 0 = sem histórico
+        const anteriores = recentes.slice(0, -1);
+        const recentesTexto = CONTEXTO > 0
+            ? anteriores.slice(-CONTEXTO).map(m => `${m.role}: ${m.texto}`).join('\n')
+            : '(Sem histórico enviado)';
 
         const promptCompleto = `
 ${PERSONALIDADE}
@@ -621,7 +679,7 @@ Responda como Viva.
             const container = document.getElementById('chat-container');
             const ultimaMsg = container.lastChild;
 
-            const resposta = await chamarGemini(promptCompleto);
+            const resposta = await chamarGemini(promptCompleto, { temperatura: TEMPERATURA, web: USAR_WEB });
             ultimaMsg.textContent = resposta;
 
             await salvarMemoriaRecente('viva', resposta.substring(0, 2000));
@@ -651,6 +709,23 @@ Responda como Viva.
     document.getElementById('model-select').addEventListener('change', (e) => {
         MODELO = e.target.value;
         localStorage.setItem('viva_modelo', MODELO);
+    });
+
+    document.getElementById('chk-web').addEventListener('change', (e) => {
+        USAR_WEB = e.target.checked;
+        localStorage.setItem('viva_web', USAR_WEB ? '1' : '0');
+    });
+
+    document.getElementById('rng-temperatura').addEventListener('input', (e) => {
+        TEMPERATURA = parseFloat(e.target.value);
+        document.getElementById('val-temperatura').textContent = TEMPERATURA.toFixed(1);
+        localStorage.setItem('viva_temperatura', String(TEMPERATURA));
+    });
+
+    document.getElementById('rng-contexto').addEventListener('input', (e) => {
+        CONTEXTO = parseInt(e.target.value, 10);
+        document.getElementById('val-contexto').textContent = CONTEXTO;
+        localStorage.setItem('viva_contexto', String(CONTEXTO));
     });
 
     document.getElementById('btn-atualizar-perfil').addEventListener('click', async () => {
@@ -750,6 +825,11 @@ Responda como Viva.
     window.addEventListener('load', async () => {
         document.getElementById('api-key-input').value = API_KEY;
         document.getElementById('model-select').value = MODELO;
+        document.getElementById('chk-web').checked = USAR_WEB;
+        document.getElementById('rng-temperatura').value = TEMPERATURA;
+        document.getElementById('val-temperatura').textContent = TEMPERATURA.toFixed(1);
+        document.getElementById('rng-contexto').value = CONTEXTO;
+        document.getElementById('val-contexto').textContent = CONTEXTO;
         await abrirDB();
         console.log('Viva pronta.');
     });
