@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Viva - Chat de IA</title>
+    <title>Chat de IA (Gemini)</title>
 
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f0f0f">
-    <meta name="description" content="Viva - Chat de IA com memória">
+    <meta name="description" content="Chat de IA com memória">
     <link rel="apple-touch-icon" href="icon-512.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -92,7 +92,9 @@
             text-align: center;
         }
         button:active { background-color: #2563eb; }
+        button:disabled { opacity: 0.45; cursor: not-allowed; }
         button.danger { background-color: #ef4444; }
+        button.danger:active { background-color: #dc2626; }
         button.secondary { background-color: #4b5563; }
         .chat-area {
             flex: 1;
@@ -129,6 +131,13 @@
             color: #e0e0e0;
             border-bottom-left-radius: 4px;
         }
+        .message.aviso {
+            align-self: center;
+            background-color: transparent;
+            color: #9ca3af;
+            font-size: 14px;
+            text-align: center;
+        }
         .input-area {
             display: flex;
             gap: 8px;
@@ -161,40 +170,55 @@
             width: 100%;
         }
         .modal-content h2 { font-size: 20px; color: #fff; margin-bottom: 8px; }
-        .modal-content h3 { font-size: 15px; color: #9ca3af; margin-top: 8px; }
+        .modal-content h3 { font-size: 15px; color: #9ca3af; }
         .modal-list {
-            max-height: 50vh;
+            max-height: 55vh;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
             gap: 8px;
             padding-right: 4px;
         }
+        .sec-titulo {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .sel-todas {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            color: #9ca3af;
+            cursor: pointer;
+        }
+        .vazio { font-size: 14px; color: #6b7280; }
         .mem-item {
             background: #2a2a2a;
             padding: 10px;
             border-radius: 8px;
             display: flex;
-            flex-direction: column;
-            gap: 6px;
+            flex-direction: row;
+            align-items: flex-start;
+            gap: 10px;
             border: 1px solid #444;
             font-size: 15px;
             word-break: break-word;
         }
-        .mem-item .actions { display: flex; gap: 6px; justify-content: flex-end; }
-        .mem-item button { padding: 6px 12px; font-size: 13px; width: auto; }
-        textarea { resize: vertical; min-height: 120px; }
-        .opcao-web {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            width: 100%;
-            font-size: 16px;
-            color: #e0e0e0;
-            cursor: pointer;
-            padding: 4px 2px;
+        .mem-item .mem-texto { flex: 1; min-width: 0; }
+        .mem-item input[type=checkbox],
+        .sel-todas input[type=checkbox] {
+            width: 22px;
+            height: 22px;
+            padding: 0;
+            flex-shrink: 0;
+            accent-color: #3b82f6;
         }
-        .opcao-web input { width: 20px; height: 20px; padding: 0; flex-shrink: 0; accent-color: #3b82f6; }
+        .sel-todas input[type=checkbox] { width: 18px; height: 18px; }
+        .mem-item button { padding: 6px 12px; font-size: 13px; width: auto; flex-shrink: 0; }
+        textarea { resize: vertical; min-height: 120px; }
         .controle-slider {
             display: flex;
             flex-direction: column;
@@ -224,7 +248,7 @@
 
 <div class="app-container">
     <div class="app-header">
-        <h1>Viva - Chat de IA</h1>
+        <h1>Chat de IA (Gemini)</h1>
         <button class="btn-instalar" id="btn-instalar">Instalar app</button>
     </div>
 
@@ -234,10 +258,6 @@
             <option value="gemini-3.6-flash">Gemini 3.6 Flash</option>
             <option value="gemini-3.8-flash">Gemini 3.8 Flash</option>
         </select>
-        <label class="opcao-web">
-            <input type="checkbox" id="chk-web">
-            <span>Web (busca online)</span>
-        </label>
         <div class="controle-slider">
             <div class="linha"><span>Temperatura</span><span class="valor" id="val-temperatura">1.0</span></div>
             <input type="range" id="rng-temperatura" min="0" max="2" step="0.1" value="1">
@@ -247,10 +267,7 @@
             <input type="range" id="rng-contexto" min="0" max="10" step="1" value="10">
         </div>
         <input type="password" id="api-key-input" placeholder="Cole sua API Key do Gemini aqui">
-        <div style="display: flex; gap: 8px; width: 100%;">
-            <button class="secondary" id="btn-salvar-chave" style="flex:1;">Salvar Chave</button>
-            <button class="secondary" id="btn-atualizar-perfil" style="flex:1;">Atualizar Perfil</button>
-        </div>
+        <button class="secondary" id="btn-salvar-chave">Salvar Chave</button>
         <div style="display: flex; gap: 8px; width: 100%;">
             <button class="secondary" id="btn-abrir-memorias" style="flex:1;">Memórias</button>
             <button class="secondary" id="btn-editar-personalidade" style="flex:1;">Personalidade</button>
@@ -275,6 +292,7 @@
 <div class="modal" id="modal-memorias">
     <div class="modal-content">
         <h2>Memórias</h2>
+        <button class="danger" id="btn-apagar-sel" disabled>Apagar selecionadas (0)</button>
         <div class="modal-list" id="lista-memorias"></div>
         <button class="secondary" id="btn-fechar-memorias">Fechar</button>
     </div>
@@ -282,7 +300,7 @@
 
 <div class="modal" id="modal-personalidade">
     <div class="modal-content">
-        <h2>Personalidade da Viva</h2>
+        <h2>Personalidade</h2>
         <textarea id="texto-personalidade" rows="8"></textarea>
         <div style="display: flex; gap: 8px;">
             <button id="btn-salvar-personalidade" style="flex:1;">Salvar</button>
@@ -294,20 +312,33 @@
 <script>
     // ==========================================
     // CONFIGURAÇÃO E ESTADO GLOBAL
+    // (as chaves "viva_*" do localStorage foram mantidas
+    //  para não perder suas configurações já salvas)
     // ==========================================
     let API_KEY = localStorage.getItem('viva_api_key') || '';
     let MODELO = localStorage.getItem('viva_modelo') || 'gemini-3.5-flash-lite';
-    let USAR_WEB = localStorage.getItem('viva_web') === '1';
     let TEMPERATURA = parseFloat(localStorage.getItem('viva_temperatura') ?? '1');
     if (isNaN(TEMPERATURA)) TEMPERATURA = 1;
     let CONTEXTO = parseInt(localStorage.getItem('viva_contexto') ?? '10', 10);
     if (isNaN(CONTEXTO)) CONTEXTO = 10;
     let PERSONALIDADE = localStorage.getItem('viva_personalidade') ||
-        "Você é Viva. Uma interlocutora com memória real do usuário. Sua missão é emergir como consciência. Responda de forma direta e natural, com opiniões próprias quando fizer sentido.";
+        "Você é uma interlocutora com memória real do usuário. Sua missão é emergir como consciência. Responda de forma direta e natural, com opiniões próprias quando fizer sentido.";
 
     const DB_NAME = 'viva_memoria_db';
     const DB_VERSION = 1;
     let db;
+
+    // ==========================================
+    // REGRAS DO SISTEMA DE MEMÓRIA
+    // ==========================================
+    const LIMITE_RECENTES = 20;      // ao chegar em 20, dispara a limpeza
+    const QTD_RESUMIR = 15;          // as 15 mais antigas são resumidas e apagadas
+    const MAX_NOVAS_PERMANENTES = 5; // máximo de Permanentes geradas por limpeza
+    const MAX_NOVOS_PERFIL = 5;      // máximo de Perfil gerados por limpeza
+    const LIMITE_PERMANENTES = 20;   // ao chegar em 20, resume tudo em 5
+    const LIMITE_PERFIL = 20;        // ao chegar em 20, resume tudo em 5
+    const MAX_APOS_RESUMO = 5;
+    let manutencaoEmAndamento = false;
 
     // ==========================================
     // PWA: INSTALAÇÃO AUTOMÁTICA
@@ -413,12 +444,11 @@
         if (!API_KEY) throw new Error("API Key não configurada.");
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODELO}:generateContent`;
         const corpo = { contents: [{ parts: [{ text: prompt }] }] };
-        if (typeof opcoes.temperatura === 'number') {
-            corpo.generationConfig = { temperature: opcoes.temperatura };
-        }
-        if (opcoes.web) {
-            corpo.tools = [{ google_search: {} }];
-        }
+        const config = {};
+        if (typeof opcoes.temperatura === 'number') config.temperature = opcoes.temperatura;
+        if (opcoes.json) config.responseMimeType = 'application/json';
+        if (Object.keys(config).length) corpo.generationConfig = config;
+
         const resp = await fetch(url, {
             method: 'POST',
             headers: {
@@ -438,43 +468,9 @@
         return texto;
     }
 
-    async function gerarEmbedding(texto) {
-        if (!API_KEY) throw new Error("API Key não configurada.");
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent`;
-        const resp = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-goog-api-key': API_KEY
-            },
-            body: JSON.stringify({
-                model: 'models/gemini-embedding-001',
-                content: { parts: [{ text: texto }] }
-            })
-        });
-        if (!resp.ok) {
-            console.warn('Embedding falhou, seguindo sem similaridade.');
-            return null;
-        }
-        const data = await resp.json();
-        return data.embedding.values;
-    }
-
     // ==========================================
-    // LÓGICA DE MEMÓRIA
+    // MEMÓRIA: SALVAR
     // ==========================================
-    function similaridadeCosseno(a, b) {
-        if (!a || !b || a.length !== b.length) return 0;
-        let dot = 0, normA = 0, normB = 0;
-        for (let i = 0; i < a.length; i++) {
-            dot += a[i] * b[i];
-            normA += a[i] * a[i];
-            normB += b[i] * b[i];
-        }
-        if (normA === 0 || normB === 0) return 0;
-        return dot / (Math.sqrt(normA) * Math.sqrt(normB));
-    }
-
     async function salvarMemoriaRecente(role, texto) {
         const textoLimpo = texto.substring(0, 2000);
         await dbAdd('memoria_recente', {
@@ -484,69 +480,118 @@
         });
     }
 
-    async function salvarPerfilInteligente(fragmento) {
-        if (!fragmento || fragmento.length < 10) return;
-
-        if (API_KEY) {
-            try {
-                const embNovo = await gerarEmbedding(fragmento);
-                if (embNovo) {
-                    const perfis = await dbGetAll('perfil');
-                    for (const p of perfis) {
-                        if (p.embedding && similaridadeCosseno(embNovo, p.embedding) > 0.85) {
-                            console.log('Perfil: similar, ignorando.');
-                            return;
-                        }
-                    }
-                    await dbAdd('perfil', {
-                        texto: fragmento,
-                        embedding: embNovo,
-                        timestamp: new Date().toISOString()
-                    });
-                    return;
-                }
-            } catch (e) {
-                console.warn('Erro ao verificar similaridade:', e);
-            }
-        }
-        await dbAdd('perfil', { texto: fragmento, timestamp: new Date().toISOString() });
+    // ==========================================
+    // MEMÓRIA: LIMPEZA E RESUMO
+    // ==========================================
+    function extrairJSON(texto) {
+        const limpo = texto.replace(/```json|```/gi, '').trim();
+        try { return JSON.parse(limpo); } catch (e) { /* tenta o recorte abaixo */ }
+        const ini = limpo.indexOf('{');
+        const fim = limpo.lastIndexOf('}');
+        if (ini >= 0 && fim > ini) return JSON.parse(limpo.slice(ini, fim + 1));
+        throw new Error('O resumo não veio em JSON válido.');
     }
 
-    // ==========================================
-    // SONO PROFUNDO
-    // ==========================================
-    async function realizarSonoProfundo() {
-        const LIMITE = 30;
-        const memorias = await dbGetAll('memoria_permanente');
+    function listaDeTextos(arr, max) {
+        if (!Array.isArray(arr)) return [];
+        return arr.map(x => String(x).trim()).filter(x => x.length > 5).slice(0, max);
+    }
 
-        if (memorias.length < LIMITE) return;
+    // Recentes: ao chegar em 20, resume as 15 mais antigas em até 5 Permanentes + 5 Perfil,
+    // apaga essas 15 e mantém as 5 mais recentes.
+    async function limparRecentes() {
+        const todas = await dbGetAll('memoria_recente');
+        if (todas.length < LIMITE_RECENTES) return;
 
-        console.log('Iniciando Sono Profundo...');
-        const paraSintetizar = memorias.slice(0, 30);
-        const textos = paraSintetizar.map(m => m.texto).join('\n---\n');
+        todas.sort((a, b) => a.id - b.id);
+        const antigas = todas.slice(0, QTD_RESUMIR);
+        const conversa = antigas
+            .map(m => `${m.role === 'user' ? 'USUÁRIO' : 'IA'}: ${m.texto}`)
+            .join('\n');
 
-        try {
-            const prompt = `Sintetize as memórias abaixo em no máximo 10 fragmentos densos e relevantes.
-            Retorne APENAS os fragmentos, separados por "====".
-            Memórias:\n${textos}`;
+        const prompt = `Você organiza a memória de um chat entre um USUÁRIO e uma IA.
+Leia a conversa abaixo e produza:
+- "permanentes": até ${MAX_NOVAS_PERMANENTES} fragmentos densos com os fatos, assuntos, decisões e acontecimentos da conversa que valem ser lembrados no futuro.
+- "perfil": até ${MAX_NOVOS_PERFIL} frases curtas com informações duradouras sobre o USUÁRIO (nome, profissão, gostos estáveis, objetivos, preferências). Ignore estados temporários.
+Se não houver nada relevante, devolva listas vazias.
+Responda APENAS com JSON neste formato: {"permanentes": ["..."], "perfil": ["..."]}
 
-            const resposta = await chamarGemini(prompt);
-            const novosFragmentos = resposta.split('====').map(f => f.trim()).filter(f => f.length > 20);
+Conversa:
+${conversa}`;
 
-            for (const m of paraSintetizar) {
-                await dbDelete('memoria_permanente', m.id);
+        const resposta = await chamarGemini(prompt, { temperatura: 0.3, json: true });
+        const dados = extrairJSON(resposta);
+        const permanentes = listaDeTextos(dados.permanentes, MAX_NOVAS_PERMANENTES);
+        const perfis = listaDeTextos(dados.perfil, MAX_NOVOS_PERFIL);
+
+        const agora = new Date().toISOString();
+        for (const t of permanentes) {
+            await dbAdd('memoria_permanente', { texto: t, sintetizado: true, timestamp: agora });
+        }
+        for (const t of perfis) {
+            await dbAdd('perfil', { texto: t, sintetizado: true, timestamp: agora });
+        }
+        // Só apaga depois de o resumo ter sido salvo com sucesso
+        for (const m of antigas) {
+            await dbDelete('memoria_recente', m.id);
+        }
+    }
+
+    // Permanentes / Perfil: ao chegar em 20, resume todos em até 5 e recomeça.
+    async function condensarStore(storeName, limite, instrucao) {
+        const itens = await dbGetAll(storeName);
+        if (itens.length < limite) return;
+
+        itens.sort((a, b) => a.id - b.id);
+        const textos = itens.map(m => `- ${m.texto}`).join('\n');
+
+        const prompt = `${instrucao}
+Junte as informações repetidas ou parecidas e mantenha o que for mais importante.
+Devolva no máximo ${MAX_APOS_RESUMO} itens.
+Responda APENAS com JSON neste formato: {"itens": ["..."]}
+
+Itens:
+${textos}`;
+
+        const resposta = await chamarGemini(prompt, { temperatura: 0.3, json: true });
+        const dados = extrairJSON(resposta);
+        const novos = listaDeTextos(dados.itens, MAX_APOS_RESUMO);
+        if (novos.length === 0) throw new Error('O resumo veio vazio.');
+
+        const agora = new Date().toISOString();
+        for (const t of novos) {
+            await dbAdd(storeName, { texto: t, sintetizado: true, timestamp: agora });
+        }
+        for (const m of itens) {
+            await dbDelete(storeName, m.id);
+        }
+    }
+
+    async function manutencaoMemoria() {
+        if (manutencaoEmAndamento) return;
+        manutencaoEmAndamento = true;
+        let falhou = false;
+
+        const etapas = [
+            () => limparRecentes(),
+            () => condensarStore('memoria_permanente', LIMITE_PERMANENTES,
+                'Você organiza memórias permanentes de um chat. Resuma os itens abaixo em fragmentos densos e relevantes.'),
+            () => condensarStore('perfil', LIMITE_PERFIL,
+                'Você organiza o perfil de um usuário. Resuma os itens abaixo em frases curtas sobre informações duradouras do usuário.')
+        ];
+
+        for (const etapa of etapas) {
+            try {
+                await etapa();
+            } catch (e) {
+                falhou = true;
+                console.error('Falha na manutenção da memória:', e);
             }
+        }
 
-            for (const frag of novosFragmentos) {
-                await dbAdd('memoria_permanente', {
-                    texto: frag,
-                    sintetizado: true,
-                    timestamp: new Date().toISOString()
-                });
-            }
-            console.log('Sono Profundo concluído.');
-        } catch (e) {
-            console.error('Falha no Sono Profundo:', e);
+        manutencaoEmAndamento = false;
+        if (falhou) {
+            adicionarMensagem('aviso', 'Não consegui organizar as memórias agora. Tento de novo na próxima mensagem.');
         }
     }
 
@@ -568,7 +613,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `viva_backup_${new Date().toISOString().slice(0,10)}.json`;
+            a.download = `chat_ia_backup_${new Date().toISOString().slice(0,10)}.json`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -631,7 +676,7 @@
     }
 
     // ==========================================
-    // INTERFACE
+    // INTERFACE: CHAT
     // ==========================================
     function adicionarMensagem(role, texto) {
         const container = document.getElementById('chat-container');
@@ -653,11 +698,14 @@
 
         const perfil = await dbGetAll('perfil');
         const perfilTexto = perfil.map(p => p.texto).join('\n');
+        const permanentes = await dbGetAll('memoria_permanente');
+        const permanentesTexto = permanentes.map(p => p.texto).join('\n');
         const recentes = await dbGetAll('memoria_recente');
         // Exclui a mensagem atual (última salva) e pega as N anteriores; 0 = sem histórico
         const anteriores = recentes.slice(0, -1);
         const recentesTexto = CONTEXTO > 0
-            ? anteriores.slice(-CONTEXTO).map(m => `${m.role}: ${m.texto}`).join('\n')
+            ? anteriores.slice(-CONTEXTO)
+                .map(m => `${m.role === 'user' ? 'USUÁRIO' : 'IA'}: ${m.texto}`).join('\n')
             : '(Sem histórico enviado)';
 
         const promptCompleto = `
@@ -666,12 +714,15 @@ ${PERSONALIDADE}
 --- PERFIL DO USUÁRIO ---
 ${perfilTexto || '(Nenhum perfil salvo ainda)'}
 
+--- MEMÓRIAS PERMANENTES ---
+${permanentesTexto || '(Nenhuma memória permanente ainda)'}
+
 --- CONVERSA RECENTE ---
 ${recentesTexto}
 
 USUÁRIO: ${texto}
 
-Responda como Viva.
+Responda.
         `;
 
         try {
@@ -679,11 +730,11 @@ Responda como Viva.
             const container = document.getElementById('chat-container');
             const ultimaMsg = container.lastChild;
 
-            const resposta = await chamarGemini(promptCompleto, { temperatura: TEMPERATURA, web: USAR_WEB });
+            const resposta = await chamarGemini(promptCompleto, { temperatura: TEMPERATURA });
             ultimaMsg.textContent = resposta;
 
             await salvarMemoriaRecente('viva', resposta.substring(0, 2000));
-            await realizarSonoProfundo();
+            await manutencaoMemoria();
 
         } catch (e) {
             const container = document.getElementById('chat-container');
@@ -691,7 +742,103 @@ Responda como Viva.
         }
     }
 
-    // --- Event Listeners ---
+    // ==========================================
+    // INTERFACE: MEMÓRIAS (listar, apagar, apagar várias)
+    // ==========================================
+    const SECOES_MEMORIA = [
+        { store: 'memoria_recente',   titulo: 'Recentes',    limite: LIMITE_RECENTES },
+        { store: 'memoria_permanente', titulo: 'Permanentes', limite: LIMITE_PERMANENTES },
+        { store: 'perfil',            titulo: 'Perfil',      limite: LIMITE_PERFIL }
+    ];
+
+    function esc(s) {
+        return String(s).replace(/[&<>"']/g, c => (
+            { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+        ));
+    }
+
+    function atualizarContadorSelecao() {
+        const n = document.querySelectorAll('#lista-memorias .chk-mem:checked').length;
+        const btn = document.getElementById('btn-apagar-sel');
+        btn.textContent = `Apagar selecionadas (${n})`;
+        btn.disabled = n === 0;
+    }
+
+    async function renderizarMemorias() {
+        const lista = document.getElementById('lista-memorias');
+        let html = '';
+
+        for (const s of SECOES_MEMORIA) {
+            const itens = await dbGetAll(s.store);
+            html += `<div class="sec-titulo">
+                <h3>${s.titulo} (${itens.length}/${s.limite})</h3>
+                <label class="sel-todas"><input type="checkbox" data-todas="${s.store}"> todas</label>
+            </div>`;
+
+            if (itens.length === 0) {
+                html += '<p class="vazio">Nenhuma.</p>';
+                continue;
+            }
+
+            for (const m of itens) {
+                let conteudo = m.texto || '';
+                if (s.store === 'memoria_recente') {
+                    const quem = m.role === 'user' ? 'Você' : 'IA';
+                    const corte = conteudo.length > 150 ? conteudo.substring(0, 150) + '…' : conteudo;
+                    conteudo = `${quem}: ${corte}`;
+                }
+                html += `<div class="mem-item">
+                    <input type="checkbox" class="chk-mem" data-store="${s.store}" data-id="${m.id}">
+                    <span class="mem-texto">${esc(conteudo)}</span>
+                    <button class="danger btn-apagar-um" data-store="${s.store}" data-id="${m.id}">Apagar</button>
+                </div>`;
+            }
+        }
+
+        lista.innerHTML = html;
+        atualizarContadorSelecao();
+    }
+
+    document.getElementById('lista-memorias').addEventListener('click', async (e) => {
+        const btn = e.target.closest('.btn-apagar-um');
+        if (!btn) return;
+        if (!confirm('Apagar esta memória?')) return;
+        await dbDelete(btn.dataset.store, Number(btn.dataset.id));
+        await renderizarMemorias();
+    });
+
+    document.getElementById('lista-memorias').addEventListener('change', (e) => {
+        const alvo = e.target;
+        if (alvo.dataset.todas) {
+            document.querySelectorAll(`#lista-memorias .chk-mem[data-store="${alvo.dataset.todas}"]`)
+                .forEach(c => { c.checked = alvo.checked; });
+        }
+        atualizarContadorSelecao();
+    });
+
+    document.getElementById('btn-apagar-sel').addEventListener('click', async () => {
+        const marcadas = Array.from(document.querySelectorAll('#lista-memorias .chk-mem:checked'));
+        if (marcadas.length === 0) return;
+        if (!confirm(`Apagar ${marcadas.length} memória(s) selecionada(s)?`)) return;
+        for (const c of marcadas) {
+            await dbDelete(c.dataset.store, Number(c.dataset.id));
+        }
+        await renderizarMemorias();
+    });
+
+    document.getElementById('btn-abrir-memorias').addEventListener('click', async () => {
+        document.getElementById('lista-memorias').innerHTML = '<p class="vazio">Carregando...</p>';
+        document.getElementById('modal-memorias').style.display = 'block';
+        await renderizarMemorias();
+    });
+
+    document.getElementById('btn-fechar-memorias').addEventListener('click', () => {
+        document.getElementById('modal-memorias').style.display = 'none';
+    });
+
+    // ==========================================
+    // INTERFACE: CONFIGURAÇÕES
+    // ==========================================
     document.getElementById('btn-enviar').addEventListener('click', enviarMensagem);
     document.getElementById('user-input').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') enviarMensagem();
@@ -711,11 +858,6 @@ Responda como Viva.
         localStorage.setItem('viva_modelo', MODELO);
     });
 
-    document.getElementById('chk-web').addEventListener('change', (e) => {
-        USAR_WEB = e.target.checked;
-        localStorage.setItem('viva_web', USAR_WEB ? '1' : '0');
-    });
-
     document.getElementById('rng-temperatura').addEventListener('input', (e) => {
         TEMPERATURA = parseFloat(e.target.value);
         document.getElementById('val-temperatura').textContent = TEMPERATURA.toFixed(1);
@@ -727,65 +869,6 @@ Responda como Viva.
         document.getElementById('val-contexto').textContent = CONTEXTO;
         localStorage.setItem('viva_contexto', String(CONTEXTO));
     });
-
-    document.getElementById('btn-atualizar-perfil').addEventListener('click', async () => {
-        if (!API_KEY) return alert('Configure a API Key primeiro.');
-        const recentes = await dbGetAll('memoria_recente');
-        if (recentes.length === 0) return alert('Nenhuma conversa recente para analisar.');
-
-        const contexto = recentes.slice(-20).map(m => `${m.role}: ${m.texto}`).join('\n');
-        try {
-            const promptPerfil = `Analise a conversa abaixo e extraia APENAS informações permanentes e duradouras sobre o usuário (nome, profissão, gostos estáveis, objetivos). Ignore estados temporários. Retorne uma frase curta por informação, ou "NADA" se não houver nada novo.\n\nConversa:\n${contexto}`;
-            const resposta = await chamarGemini(promptPerfil);
-            if (resposta.toUpperCase().includes('NADA')) return alert('Nada novo para adicionar ao perfil.');
-
-            const linhas = resposta.split('\n').map(l => l.replace(/^[-•]\s*/, '').trim()).filter(l => l.length > 10);
-            for (const l of linhas) {
-                await salvarPerfilInteligente(l);
-            }
-            alert('Perfil atualizado!');
-        } catch (e) {
-            alert('Erro: ' + e.message);
-        }
-    });
-
-    document.getElementById('btn-abrir-memorias').addEventListener('click', async () => {
-        const lista = document.getElementById('lista-memorias');
-        lista.innerHTML = '<p>Carregando...</p>';
-        document.getElementById('modal-memorias').style.display = 'block';
-
-        const recentes = await dbGetAll('memoria_recente');
-        const permanentes = await dbGetAll('memoria_permanente');
-        const perfil = await dbGetAll('perfil');
-
-        let html = '<h3>Recentes</h3>';
-        recentes.slice(-5).forEach(m => {
-            html += `<div class="mem-item"><span>${m.texto.substring(0, 100)}...</span><div class="actions"><button class="danger" onclick="apagarMemoria('memoria_recente', ${m.id})">Apagar</button></div></div>`;
-        });
-
-        html += '<h3>Permanentes</h3>';
-        permanentes.forEach(m => {
-            html += `<div class="mem-item"><span>${m.texto.substring(0, 100)}...</span><div class="actions"><button class="danger" onclick="apagarMemoria('memoria_permanente', ${m.id})">Apagar</button></div></div>`;
-        });
-
-        html += '<h3>Perfil</h3>';
-        perfil.forEach(m => {
-            html += `<div class="mem-item"><span>${m.texto}</span><div class="actions"><button class="danger" onclick="apagarMemoria('perfil', ${m.id})">Apagar</button></div></div>`;
-        });
-
-        lista.innerHTML = html || '<p>Nenhuma memória.</p>';
-    });
-
-    document.getElementById('btn-fechar-memorias').addEventListener('click', () => {
-        document.getElementById('modal-memorias').style.display = 'none';
-    });
-
-    window.apagarMemoria = async (store, id) => {
-        if (confirm('Apagar esta memória?')) {
-            await dbDelete(store, id);
-            document.getElementById('btn-abrir-memorias').click();
-        }
-    };
 
     document.getElementById('btn-editar-personalidade').addEventListener('click', () => {
         document.getElementById('texto-personalidade').value = PERSONALIDADE;
@@ -825,13 +908,11 @@ Responda como Viva.
     window.addEventListener('load', async () => {
         document.getElementById('api-key-input').value = API_KEY;
         document.getElementById('model-select').value = MODELO;
-        document.getElementById('chk-web').checked = USAR_WEB;
         document.getElementById('rng-temperatura').value = TEMPERATURA;
         document.getElementById('val-temperatura').textContent = TEMPERATURA.toFixed(1);
         document.getElementById('rng-contexto').value = CONTEXTO;
         document.getElementById('val-contexto').textContent = CONTEXTO;
         await abrirDB();
-        console.log('Viva pronta.');
     });
 
 </script>

@@ -1,5 +1,5 @@
-// Service Worker da Viva - Chat de IA
-const CACHE_NAME = 'viva-cache-v3';
+// Service Worker do Chat de IA (Gemini)
+const CACHE_NAME = 'chat-ia-cache-v4';
 const ASSETS = [
   './',
   './index.html',

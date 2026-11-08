@@ -1,6 +1,6 @@
 {
-  "name": "Viva - Chat de IA",
-  "short_name": "Viva",
+  "name": "Chat de IA (Gemini)",
+  "short_name": "Chat IA",
   "description": "Chat de IA com memória persistente",
   "id": "./index.html",
   "start_url": "./index.html",
